@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1710853224008.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "94A66AEC",
+    "lastKnownWriteTime" : 19140693555675237,
+    "last_content_update" : 1710853224008,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "id" : "9a56852cf48f4712b672788778109710",
+        "name" : "subset_fc2_13aa_vs_13leu",
+        "title" : "subset_fc2_13aa_vs_13leu"
+    },
+    "relative_order" : 8,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "object_explorer"
+}

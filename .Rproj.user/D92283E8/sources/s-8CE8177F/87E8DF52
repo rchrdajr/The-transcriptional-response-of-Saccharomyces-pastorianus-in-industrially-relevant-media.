@@ -1,0 +1,24 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1708612386407.000,
+    "dirty" : true,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "287424465",
+    "id" : "87E8DF52",
+    "lastKnownWriteTime" : 1711040417,
+    "last_content_update" : 1711126455593,
+    "path" : "~/R_Proj/1_Feature_counts/unnorm_data_1/DESeq2_analysis_clean.Rmd",
+    "project_path" : "DESeq2_analysis_clean.Rmd",
+    "properties" : {
+        "cursorPosition" : "55,0",
+        "last_setup_crc32" : "8CE8177Fbb338d19",
+        "scrollLine" : "44",
+        "tempName" : "Untitled2"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

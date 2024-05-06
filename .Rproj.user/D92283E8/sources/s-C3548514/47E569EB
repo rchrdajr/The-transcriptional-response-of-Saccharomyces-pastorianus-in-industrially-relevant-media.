@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1712155976979.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "47E569EB",
+    "lastKnownWriteTime" : 3419473789575321445,
+    "last_content_update" : 1712155976979,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "789EF4B6",
+        "caption" : "ethGO",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=ethGO&cache_key=789EF4B6",
+        "displayedObservations" : 18,
+        "environment" : "",
+        "object" : "ethGO",
+        "preview" : 0,
+        "totalObservations" : 18,
+        "variables" : 11
+    },
+    "relative_order" : 12,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

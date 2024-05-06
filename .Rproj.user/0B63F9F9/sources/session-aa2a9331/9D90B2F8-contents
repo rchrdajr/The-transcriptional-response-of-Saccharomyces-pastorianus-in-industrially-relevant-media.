@@ -1,0 +1,107 @@
+library(tidyverse)
+library(patchwork)
+
+#import data
+ufo_sightings1 <- read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-06-25/ufo_sightings.csv")
+
+#plot top 10 COUNTRIES w/ most ufo sigtings per year and number of sightings
+plot_top10_countries <- ufo_sightings1 %>%
+  filter(!is.na(country)) %>%
+  mutate(country = str_to_upper(country)) %>%
+  group_by(country) %>%
+  tally() %>%
+  top_n(10) %>%
+  ggplot(aes(x=reorder(country, n), y = n, fill = country))+
+  geom_col() + 
+  coord_flip() +
+  guides(fill = "none") + 
+  labs(title = "Top 10 Countries for UFO Sightings",
+       x = NULL, 
+       y = NULL) +
+  ylim(0, 110000) +
+  theme_minimal() +
+  theme(text = element_text(size = 15))
+
+
+# plot all sightings on a map of the US
+plot_world_map <- ufo_sightings1 %>%
+  ggplot(aes(x = longitude, y = latitude)) + 
+  geom_point(size = .001, alpha = .25) +
+  theme_void() +
+  coord_cartesian() +
+  labs(title = "Sites of UFO Sightings Worldwide") +
+  theme(text = element_text(size = 15))
+
+
+#Plot all ufo sighting shapes by number in gb 
+plot_uk_sightings_shape <- ufo_sightings1 %>%
+  filter(country == "gb") %>%
+  filter(ufo_shape != "other") %>%
+  filter(ufo_shape != "unknown") %>%
+  group_by(ufo_shape) %>%
+  tally() %>%
+  top_n(10) %>%
+  mutate(ufo_shape = str_to_title(ufo_shape)) %>%
+  ggplot(aes(x = reorder(ufo_shape, n), y = n, fill = ufo_shape)) +
+  geom_col() + 
+  coord_flip() +
+  guides(fill = "none") + 
+  labs(title = "Top 10 UFO Shapes spotted in GB",
+       x = NULL, 
+       y = NULL) +
+  theme_minimal() +
+  theme(text = element_text(size = 15))
+
+
+#Plot all ufo sighting shapes by region in gb 
+plot_uk_sightings_region <- ufo_sightings1 %>%
+  filter(country == "gb") %>%
+  filter(city_area != "other") %>%
+  filter(city_area != "unknown") %>%
+  group_by(city_area) %>%
+  tally() %>%
+  top_n(10) %>%
+  mutate(city_area = str_to_title(city_area)) %>%
+  ggplot(aes(x = reorder(city_area, n), y = n, fill = city_area)) +
+  geom_col() + 
+  coord_flip() +
+  guides(fill = "none") + 
+  labs(title = "Top 10 UFO spottings in regions of GB",
+       x = NULL, 
+       y = NULL) +
+  theme_minimal() +
+  theme(text = element_text(size = 15))
+
+
+# plot all sightings on a map of GB
+gb_tidied_ufo <- ufo_sightings %>%
+  filter(country == "gb") #%>%
+  #filter(latitude > 10 & latitude < 50)
+
+plot_GB_map <- gb_tidied_ufo %>%
+  ggplot(aes(x = longitude, y = latitude)) + 
+  geom_point(size = 10, alpha = .25) +
+  theme_void() +
+  coord_cartesian() +
+  labs(title = "Sites of UFO Sightings in Great Britain") +
+  theme(text = element_text(size = 15))
+
+#timeline of ufo sightings
+world_siting_timeline <- ufo_sightings1 %>%
+  filter(!is.na(date_documented)) %>%
+  mutate(date_documented = str_to_upper(date_documented)) %>%
+  group_by(date_documented) %>%
+  tally() %>%
+  top_n(100) %>%
+  ggplot(aes(x = reorder(date_documented, n), y = n, fill = date_documented))+
+  geom_col() + 
+  coord_flip() +
+  guides(fill = "none") + 
+  labs(title = "Top dates for UFO spottings",
+       x = NULL, 
+       y = NULL) +
+  theme_minimal() +
+  theme(text = element_text(size = 5))
+
+final_plot <- (plot_top10_countries + plot_world_map)/(plot_uk_sightings_region + plot_uk_sightings_shape + plot_GB_map)
+ggsave("final_worldwide_and_uk:plot.png", plot = final_plot, width = 12, height = 10))

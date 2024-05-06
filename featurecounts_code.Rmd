@@ -1,0 +1,436 @@
+---
+title: "FeatureCounts_analysis"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+if(!requireNamespace("BiocManager", quietly = T))
+  install.packages("BiocManager")
+
+BiocManager::install("EnhancedVolcano")
+```
+
+```{r}
+BiocManager::install("Glimma")
+
+library(Glimma)
+
+```
+
+```{r}
+library(DESeq2)
+library(ggplot2)
+library(tidyverse)
+library(styler)
+library(dplyr)
+library(EnhancedVolcano)
+```
+
+```{r}
+featurecounts_S <- read.table("FeatureCounts_reverselyStranded.s.txt", sep = "\t", header = T, row.names = 1)
+
+metadata <- read.csv("rna_samples.csv")
+```
+
+
+```{r}
+head(featurecounts_S)
+
+dim(featurecounts_S)
+```
+
+```{r}
+#gsub("^.*?_","_","ATGAS_1121")
+
+colnames(featurecounts_S) <- gsub("_Aligned.s.bam", "", colnames(featurecounts_S))
+
+colnames(featurecounts_S) <- gsub("sorted_bam.", "", colnames(featurecounts_S))
+
+
+colnames(featurecounts_S) <- str_split_i(colnames(featurecounts_S), "_", 1)
+
+colnames(featurecounts_S)
+```
+
+
+```{r}
+file <- file("rna_samples.csv", open = "r")
+liness <- readLines(file)
+print(length(liness))
+
+dico <- c()
+
+for (x in 2:length(liness)) {
+  print(liness[x])
+  print(str_split(liness[x], "\t"))
+  dico[str_split_i(liness[x], "\t", 1)] = str_split_i(liness[x], "\t", 2)
+}
+
+```
+
+```{r}
+dico
+```
+
+```{r}
+data <- featurecounts_S[,6:ncol(featurecounts_S)]
+colnames(data)
+```
+
+```{r}
+for (i in seq(1,length(dico))){
+  newcol_name <- dico[i]
+  print(paste(names(newcol_name), "goes", newcol_name))
+  colnames(data)[colnames(data) == names(newcol_name)] = newcol_name
+}
+
+```
+
+
+```{r}
+colnames(data)
+```
+
+
+```{r}
+data <- data[, c(11,22,30,31,32,33,34,35,36,1,2,3,4,5,6,7,8,9,10,12,13,14,15,16,17,18,19,20,21,23,24,25,26,27,28,29)]
+
+
+```
+
+#design metadata object
+
+```{r}
+#index <- data.frame(colnames(data))
+
+temperature <- data.frame(index = data.frame(colnames(data)),
+                          temperature = factor(c(rep("13degrees",3), rep("22degrees",3), rep("30degrees",3),
+                                                 rep("13degrees",3), rep("22degrees",3), rep("30degrees",3),
+                                                 rep("13degrees",3), rep("22degrees",3), rep("30degrees",3),
+                                                 rep("13degrees",3), rep("22degrees",3), rep("30degrees",3)
+)))
+
+condition <- data.frame(index = data.frame(colnames(data)),
+                        condition = factor(c(rep("13wort",3), rep("22wort",3), rep("30wort",3),
+                                             rep("13aa",3),   rep("22aa",3),   rep("30aa",3),
+                                             rep("13leu",3),  rep("22leu",3),  rep("30leu",3),
+                                             rep("13eth",3),  rep("22eth",3),  rep("30eth",3)
+)))
+
+media <- data.frame(index = data.frame(colnames(data)),
+                    media = factor(c(rep("wort",3), rep("wort",3), rep("wort",3),
+                                     rep("aa",3),   rep("aa",3),   rep("aa",3),
+                                     rep("leu",3),  rep("leu",3),  rep("leu",3),
+                                     rep("eth",3),  rep("eth",3),  rep("eth",3)
+)))
+```
+
+```{r}
+metaobject <- temperature %>%
+  left_join(condition, by = "colnames.data.")%>%
+  left_join(media, by = "colnames.data.")
+```
+
+```{r}
+str(metaobject)
+```
+
+##analysis
+
+
+###
+
+```{r}
+#design(dds_multif) <- ~ media + temperature + media:temperature
+```
+
+
+#########
+```{r}
+dds_temp <- DESeqDataSetFromMatrix(countData=data, 
+                              colData=metaobject, 
+                              design=~media, tidy = F)
+
+
+```
+
+```{r}
+dds_temp <- DESeq(dds_temp)
+```
+
+```{r}
+res <- results(dds_temp)
+head(results(dds_temp, tidy=F))
+```
+
+```{r}
+summary(res)
+resultsNames(dds_temp)
+```
+
+```{r}
+vsdata <- vst(dds_temp)
+plotPCA(vsdata)
+
+######
+pcaData <- plotPCA(vsdata, intgroup=c("media", "temperature"), returnData = T)
+percentVar <- round(100 * attr(pcaData, "percentVar"))
+
+pcaData %>%
+ggplot(aes(PC1, PC2, colour=media, shape=temperature))+
+  geom_point(position = "jitter", size=2.5)+
+  xlab(paste0("PC1:",percentVar[1], "% variance"))+
+  ylab(paste0("PC2:",percentVar[2], "% variance"))+
+  coord_fixed()
+
+
+
+pcaData %>%
+ggplot(aes(PC1, PC2, colour=media, shape=temperature))+
+  geom_point(size=2.5)+
+  geom_jitter(width = 1,height = 1)+
+  xlab(paste0("PC1:",percentVar[1], "% variance"))+
+  ylab(paste0("PC2:",percentVar[2], "% variance"))+
+  theme_minimal()+
+  coord_fixed()
+
+```
+```{r}
+par(mfrow=c(2,3))
+
+pcaData %>%
+ggplot(aes(PC1, PC2, colour=media, shape=temperature))+
+  geom_point(position = "jitter", size=2.5)+
+  xlab(paste0("PC1:",percentVar[1], "% variance"))+
+  ylab(paste0("PC2:",percentVar[2], "% variance"))+
+  coord_fixed()+
+  theme_minimal()
+
+pcaData %>%
+ggplot(aes(PC1, PC2, colour=media, shape=temperature))+
+  geom_point(position = "jitter", size=2.5)+
+  xlab(paste0("PC1:",percentVar[1], "% variance"))+
+  ylab(paste0("PC3:",percentVar[3], "% variance"))+
+  coord_fixed()+
+  theme_minimal()
+```
+
+```{r}
+install.packages("devtools")
+library("devtools")
+```
+
+```{r}
+install_github("kmuench/DESeqAid")
+library(DESeqAid)
+
+plotPCA_pickPCs(dds_temp, intgroup=c("media", "temperature"), PC1, PC2, 1, 2,
+  ntop = 500, returnData = T)
+```
+
+```{r}
+#make own function::::
+
+multiPC_pca <- function(object, intgroup = "condition", ntop=500, returnData = T, pcs = c(1,2))
+{
+  stopifnot(length(pcs) == 4) ## Check n of PCAs
+  rv <- rowVars(assay(object)) ## Calc. variance of each gene
+  select <- order(rv, decreasing = T)[seq_len(min(ntop, length(rv)))] ## Select ntop genes by variance
+  pca <- prcomp(t(assay(object)[select,])) ## perform PCA on data in assay(x) for selected genes
+  percentVar <- pca$sdev^2 / sum(pca$sdev^2) ##contribution to the total variance of each component
+  if (!all(intgroup %in% names(colData(object)))) {
+    stop("the argument 'intgroup' should specify columns of colData(dds)")
+  }
+  
+intgroup.df <- as.data.frame(colData(object)[, intgroup, drop = F])
+
+group <- if (length(intgroup) > 1){ ##add intgroup factors together to create a new grouping factor
+  factor(apply(intgroup.df, 1, paste, collapse = " : "))
+} else {
+  colData(object)[[intgroup]]
+}
+#assembe data for he plot : 
+d <- data.frame(PC1 = pca$x[,pcs[1]], PC2 = pca$x[,pcs[2]], PC3 = pca$x[,pcs[3]], PC4 = pca$x[,pcs[4]],  group = group, intgroup.df, name = colnames(object))
+
+if(returnData) {
+  attr(d, "percentVar") <- percentVar[1:4]
+  return(d)
+}
+}
+```
+
+```{r}
+multiPC_data <- multiPC_pca(dds_temp, intgroup=c("media", "temperature"), returnData = T, pcs = c(1,2,3,4))
+```
+
+
+```{r}
+#volcano
+
+with(res, plot(log2FoldChange, -log10(pvalue),pch=20, main= "Volcano plot", xlim=c(-3,3))) #???? from pch=20 onwards
+with(subset(res, padj<0.01 ), points(log2FoldChange, -log10(pvalue), pch=20, col="blue"))
+with(subset(res, padj<0.01 & abs(log2FoldChange)>2), points(log2FoldChange, -log10(pvalue), pch=20, col="red"))
+
+EnhancedVolcano(res,
+                lab = row.names(res),
+                x = "log2FoldChange",
+                y = "pvalue",
+                title = " volcano",
+                pCutoff = 10e-6,
+                FCcutoff = 0.5,
+                pointSize = 3.0,
+                labSize = 5.0)
+
+EnhancedVolcano(res,
+                lab = row.names(res),
+                x = "log2FoldChange",
+                y = "pvalue",
+                title = " volcano",
+                xlim = c(-3, 3),
+                pCutoff = 10e-6,
+                FCcutoff = 0.5,
+                pointSize = 1.0,
+                labSize = 3.0,
+                labCol = "black",
+                shape = c(1, 4, 23, 25),
+                legendPosition = "right",
+                legendLabSize = 8,
+                legendIconSize = 3,
+                drawConnectors = T,
+                widthConnectors = 1.0)
+```
+
+
+
+
+```{r}
+res <- res[order(res$log2FoldChange),]
+head(res)
+```
+
+```{r}
+subset(res,    log2FoldChange > 0 & padj < 0.05) # Statistically significant up-regulation
+subset(res, log2FoldChange < 0 & padj < 0.05) # Statistically significant down-regulation
+```
+
+```{r}
+par(mfrow=c(2,3))
+
+plotCounts(dds_temp, gene="SPGP_0Q02220", intgroup="temperature")
+plotCounts(dds_temp, gene="SPGP_0EQ00100", intgroup="temperature")
+plotCounts(dds_temp, gene="SPGP_0EQ00110", intgroup="temperature")
+plotCounts(dds_temp, gene="SPGP_0CZ02560", intgroup="temperature")
+plotCounts(dds_temp, gene="SPGP_0E01000", intgroup="temperature")
+plotCounts(dds_temp, gene="SPGP_0L01010", intgroup="temperature")
+
+par(mfrow=c(2,3))
+
+plotCounts(dds_temp, gene="SPGP_0Q02220", intgroup="media")
+plotCounts(dds_temp, gene="SPGP_0EQ00100", intgroup="media")
+plotCounts(dds_temp, gene="SPGP_0EQ00110", intgroup="media")
+plotCounts(dds_temp, gene="SPGP_0CZ02560", intgroup="media")
+plotCounts(dds_temp, gene="SPGP_0E01000", intgroup="media")
+plotCounts(dds_temp, gene="SPGP_0L01010", intgroup="media")
+
+par(mfrow=c(2,3))
+
+plotCounts(dds_temp, gene="SPGP_0Q02220", intgroup="condition")
+plotCounts(dds_temp, gene="SPGP_0EQ00100", intgroup="condition")
+plotCounts(dds_temp, gene="SPGP_0EQ00110", intgroup="condition")
+plotCounts(dds_temp, gene="SPGP_0CZ02560", intgroup="condition")
+plotCounts(dds_temp, gene="SPGP_0E01000", intgroup="condition")
+plotCounts(dds_temp, gene="SPGP_0L01010", intgroup="condition")
+```
+
+```{r}
+glimmaMDS(dds_temp)
+
+```
+
+
+# 18/3
+
+
+```{r}
+res_leu <- results(dds_temp, contrast = c("media", "aa", "leu"))
+res_eth <- results(dds_temp, contrast = c("media", "aa", "eth"))
+res_wort <- results(dds_temp, contrast = c("media", "aa", "wort"))
+
+res_leu
+res_eth
+res_wort
+```
+
+```{r}
+#????????
+leu13_res <- results(dds_temp, contrast = c("condition", "13aa", "13leu"))
+leu22_res <- results(dds_temp, contrast = c("condition", "22aa", "22leu"))
+leu30_res <- results(dds_temp, contrast = c("condition", "30aa", "30leu"))
+
+eth13_res <- results(dds_temp, contrast = c("condition", "13aa", "13eth"))
+eth22_res <- results(dds_temp, contrast = c("condition", "22aa", "22eth"))
+eth30_res <- results(dds_temp, contrast = c("condition", "30aa", "30eth"))
+
+wort13_res <- results(dds_temp, contrast = c("condition", "13aa", "13wort"))
+wort22_res <- results(dds_temp, contrast = c("condition", "22aa", "22wort"))
+wort30_res <- results(dds_temp, contrast = c("condition", "30aa", "30wort"))
+
+```
+
+
+```{r}
+#subset(res_leu,    log2FoldChange > 1 & padj < 0.05) # Statistically significant up-regulation (p<0.05, LFC=1)
+#subset(res_leu, log2FoldChange < 1 & padj < 0.05) # Statistically significant down-regulation
+```
+
+```{r}
+#obsolete !!!!!!!!!!!!!!!!!!!!!!
+leu_filtRes <- subset(res_leu,    log2FoldChange >= 1 & padj <= 0.05) # Statistically significant up-regulation (p<0.05, LFC=1)
+leu_filtRes
+summary(leu_filtRes)
+
+eth_filtRes <- subset(res_eth,    log2FoldChange > 1 & padj < 0.05) # Statistically significant up-regulation (p<0.05, LFC=1)
+eth_filtRes
+summary(eth_filtRes)
+
+wort_filtRes <- subset(res_wort,    log2FoldChange > 1 & padj < 0.05) # Statistically significant up-regulation (p<0.05, LFC=1)
+wort_filtRes
+summary(wort_filtRes)
+
+
+```
+
+```{r}
+#EXAMPLES !!!!!!!!!!!!!!!!!!!!!!
+res_leu[6,] # this isolates all columns in line 6 
+res_leu[,3] # this isolates all lines of column 3
+```
+
+###subset of up/down reg genes
+```{r}
+subset_fc2_13aa_vs_13leu <- res_leu[(res_leu$padj <= 0.05 & !is.na(res_leu$padj)) & (res_leu$log2FoldChange >=1 | res_leu$log2FoldChange <= -1),]
+subset_fc15_13aa_vs_13leu <- res_leu[(res_leu$padj <= 0.05 & !is.na(res_leu$padj)) & (res_leu$log2FoldChange >=0.5 | res_leu$log2FoldChange <= -0.5),]
+
+```
+
+```{r}
+summary(subset_fc15_13aa_vs_13leu)
+```
+
+```{r}
+write.csv(subset_13aa_vs_13leu, file = "TEST_aa_v_leu_resulsTable.csv")
+```
+
+
+
+```{r}
+write.csv(leu_filtRes, file = "aa_v_leu_resulsTable.csv")
+write.csv(eth_filtRes, file = "aa_v_eth_resulsTable.csv")
+write.csv(wort_filtRes, file = "aa_v_wort_resulsTable.csv")
+
+```
+

@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1712059827208.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "8690A7D2",
+    "lastKnownWriteTime" : 22518406164119599,
+    "last_content_update" : 1712059827208,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "533272A6",
+        "caption" : "wort_orth_annotatedData",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=wort_orth_annotatedData&cache_key=533272A6",
+        "displayedObservations" : 304,
+        "environment" : "",
+        "object" : "wort_orth_annotatedData",
+        "preview" : 0,
+        "totalObservations" : 304,
+        "variables" : 40
+    },
+    "relative_order" : 12,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

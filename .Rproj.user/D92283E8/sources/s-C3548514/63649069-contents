@@ -1,0 +1,16 @@
+library(tidyverse)
+
+ethGO <- read.csv("gProfiler_eth_intersections-Copy.csv")
+leuGO <- read.csv("gProfiler_leu_intersections.csv", row.names = NULL)
+wortGO <- read.csv("gProfiler_wort_intersections.csv", row.names = NULL)
+
+head(ethGO)
+str(ethGO)
+
+as.double(ethGO$negative_log10_of_adjusted_p_value)
+
+ethGO %>%
+  group_by(source)%>%
+    ggplot(aes(x = negative_log10_of_adjusted_p_value, y = term_name)) +
+    geom_col(aes(fill = source))
+

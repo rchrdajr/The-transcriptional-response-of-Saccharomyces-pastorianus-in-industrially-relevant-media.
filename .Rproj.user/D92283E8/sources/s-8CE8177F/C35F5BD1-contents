@@ -1,0 +1,19 @@
+library(DESeq2)
+library(ggplot2)
+library(tidyverse)
+library(styler)
+
+featurecounts_S <- read.csv("FeatureCounts_reverselyStranded.s.txt", sep = "", head = T)
+
+metadata <- read.csv("rna_samples.csv", sep = "\t")
+
+
+colnames(featurecounts_S) <- gsub("_Aligned.s.bam", "", colnames(featurecounts_S))
+colnames(featurecounts_S) <- gsub("sorted_bam.", "", colnames(featurecounts_S))
+colnames(featurecounts_S) <- str_split_i(colnames(featurecounts_S), "_", 1)
+colnames(featurecounts_S)
+
+data <- featurecounts_S[,6:ncol(featurecounts_S)]
+
+
+merged_data <- inner_join(data, metadata, by = "Tube")

@@ -1,0 +1,44 @@
+"0","library(DESeq2)"
+"2","Loading required package: S4Vectors
+"
+"2","Loading required package: stats4
+"
+"2","Loading required package: BiocGenerics
+"
+"2","
+Attaching package: ‘BiocGenerics’
+
+"
+"2","The following objects are masked from ‘package:stats’:
+
+    IQR, mad, sd, var, xtabs
+
+"
+"2","The following objects are masked from ‘package:base’:
+
+    anyDuplicated, aperm, append, as.data.frame, basename, cbind, colnames, dirname, do.call, duplicated, eval,
+    evalq, Filter, Find, get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply, match, mget, order, paste,
+    pmax, pmax.int, pmin, pmin.int, Position, rank, rbind, Reduce, rownames, sapply, setdiff, sort, table, tapply,
+    union, unique, unsplit, which.max, which.min
+
+"
+"2","
+Attaching package: ‘S4Vectors’
+
+"
+"2","The following objects are masked from ‘package:base’:
+
+    expand.grid, I, unname
+
+"
+"2","Loading required package: IRanges
+"
+"2","Loading required package: GenomicRanges
+"
+"2","Loading required package: GenomeInfoDb
+"
+"2","Error: package or namespace load failed for ‘GenomeInfoDb’ in loadNamespace(j <- i[[1L]], c(lib.loc, .libPaths()), versionCheck = vI[[j]]):
+ there is no package called ‘RCurl’
+"
+"2","Error: package ‘GenomeInfoDb’ could not be loaded
+"

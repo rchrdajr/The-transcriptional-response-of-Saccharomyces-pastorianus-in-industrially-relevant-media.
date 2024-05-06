@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1711113699048.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "11289919",
+    "lastKnownWriteTime" : 1708693238,
+    "last_content_update" : 1708693238,
+    "path" : "~/R_Proj/1_Feature_counts/unnorm_data_1/rna_samples.csv",
+    "project_path" : "rna_samples.csv",
+    "properties" : {
+        "cursorPosition" : "0,0",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 11,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "text"
+}

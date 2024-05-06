@@ -1,0 +1,560 @@
+---
+title: "FeatureCounts_analysis"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+if(!requireNamespace("BiocManager", quietly = T))
+  install.packages("BiocManager")
+```
+
+```{r}
+library(DESeq2)
+library(ggplot2)
+library(tidyverse)
+library(styler)
+library(dplyr)
+library(EnhancedVolcano)
+library("devtools")
+library(DESeqAid)
+library(VennDiagram)
+library(gplots)
+```
+
+```{r}
+featurecounts_S <- read.table("FeatureCounts_reverselyStranded.s.txt", sep = "\t", header = T, row.names = 1)
+
+metadata <- read.csv("rna_samples.csv")
+```
+
+
+```{r}
+head(featurecounts_S)
+
+dim(featurecounts_S)
+```
+
+```{r}
+colnames(featurecounts_S) <- gsub("_Aligned.s.bam", "", colnames(featurecounts_S))
+
+colnames(featurecounts_S) <- gsub("sorted_bam.", "", colnames(featurecounts_S))
+
+colnames(featurecounts_S) <- str_split_i(colnames(featurecounts_S), "_", 1)
+
+colnames(featurecounts_S)
+```
+
+
+```{r}
+file <- file("rna_samples.csv", open = "r")
+liness <- readLines(file)
+#print(length(liness))
+
+dico <- c()
+
+for (x in 2:length(liness)) {
+  #print(liness[x])
+  #print(str_split(liness[x], "\t"))
+  dico[str_split_i(liness[x], "\t", 1)] = str_split_i(liness[x], "\t", 2)
+}
+
+```
+
+```{r}
+dico
+```
+
+```{r}
+data <- featurecounts_S[,6:ncol(featurecounts_S)]
+colnames(data)
+```
+
+```{r}
+for (i in seq(1,length(dico))){
+  newcol_name <- dico[i]
+  #print(paste(names(newcol_name), "goes", newcol_name))
+  colnames(data)[colnames(data) == names(newcol_name)] = newcol_name
+}
+
+```
+
+
+```{r}
+colnames(data)
+```
+
+
+```{r}
+data <- data[, c(11,22,30,31,32,33,34,35,36,1,2,3,4,5,6,7,8,9,10,12,13,14,15,16,17,18,19,20,21,23,24,25,26,27,28,29)]
+
+colnames(data)
+
+```
+
+#design metadata object
+
+```{r}
+temperature <- data.frame(index = data.frame(colnames(data)),
+                          temperature = factor(c(rep("13degrees",3), rep("22degrees",3), rep("30degrees",3),
+                                                 rep("13degrees",3), rep("22degrees",3), rep("30degrees",3),
+                                                 rep("13degrees",3), rep("22degrees",3), rep("30degrees",3),
+                                                 rep("13degrees",3), rep("22degrees",3), rep("30degrees",3)
+)))
+
+condition <- data.frame(index = data.frame(colnames(data)),
+                        condition = factor(c(rep("13wort",3), rep("22wort",3), rep("30wort",3),
+                                             rep("13aa",3),   rep("22aa",3),   rep("30aa",3),
+                                             rep("13leu",3),  rep("22leu",3),  rep("30leu",3),
+                                             rep("13eth",3),  rep("22eth",3),  rep("30eth",3)
+)))
+
+media <- data.frame(index = data.frame(colnames(data)),
+                    media = factor(c(rep("wort",9),
+                                     rep("aa",9),
+                                     rep("leu",9),
+                                     rep("eth",9)
+)))
+```
+
+```{r}
+metaobject <- temperature %>%
+  left_join(condition, by = "colnames.data.")%>%
+  left_join(media, by = "colnames.data.")
+
+## you have used cbind function()
+```
+
+```{r}
+str(metaobject)
+```
+
+## DESeq2 analysis
+
+
+#########
+```{r}
+deseqDataset <- DESeqDataSetFromMatrix(countData=data, 
+                              colData=metaobject, 
+                              design=~condition, tidy = F)
+### PROVIDE EXPLANATION DESIGN
+```
+
+```{r}
+dds <- DESeq(deseqDataset)
+```
+
+```{r}
+resultsNames(dds)
+```
+
+
+```{r}
+######
+vsdata <- vst(dds)
+
+pcaData <- plotPCA(vsdata, intgroup=c("media", "temperature"), returnData = T)
+percentVar <- round(100 * attr(pcaData, "percentVar"))
+
+png(file = "pcaPlot.png", width = 700, height = 700)
+pcaData %>%
+ggplot(aes(PC1, PC2, colour=media, shape=temperature))+
+  geom_point(position = "jitter", size=2.5)+
+  xlab(paste0("PC1:",percentVar[1], "% variance"))+
+  ylab(paste0("PC2:",percentVar[2], "% variance"))+
+  coord_fixed()
+dev.off()
+
+```
+##### ISOLATE RESULTS FOR EACH CONDITIONS
+
+```{r}
+res_13aa_vs_13leu <- results(dds, contrast = c("condition", "13aa", "13leu"))
+res_22aa_vs_22leu <- results(dds, contrast = c("condition", "22aa", "22leu"))
+res_30aa_vs_30leu <- results(dds, contrast = c("condition", "30aa", "30leu"))
+
+res_13aa_vs_13eth <- results(dds, contrast = c("condition", "13aa", "13eth"))
+res_22aa_vs_22eth <- results(dds, contrast = c("condition", "22aa", "22eth"))
+res_30aa_vs_30eth <- results(dds, contrast = c("condition", "30aa", "30eth"))
+
+res_13aa_vs_13wort <- results(dds, contrast = c("condition", "13aa", "13wort"))
+res_22aa_vs_22wort <- results(dds, contrast = c("condition", "22aa", "22wort"))
+res_30aa_vs_30wort <- results(dds, contrast = c("condition", "30aa", "30wort"))
+```
+
+
+##### ISOLATE SUBSETS FOR EACH CONDITIONS
+
+
+```{r}
+subset_fc2_13aa_vs_13leu <- res_13aa_vs_13leu[(res_13aa_vs_13leu$padj <= 0.05 & !is.na(res_13aa_vs_13leu$padj)) & (res_13aa_vs_13leu$log2FoldChange >=1 | res_13aa_vs_13leu$log2FoldChange <= -1),]
+
+subset_fc2_22aa_vs_22leu <- res_22aa_vs_22leu[(res_22aa_vs_22leu$padj <= 0.05 & !is.na(res_22aa_vs_22leu$padj)) & (res_22aa_vs_22leu$log2FoldChange >=1 | res_22aa_vs_22leu$log2FoldChange <= -1),]
+
+subset_fc2_30aa_vs_30leu <- res_30aa_vs_30leu[(res_30aa_vs_30leu$padj <= 0.05 & !is.na(res_30aa_vs_30leu$padj)) & (res_30aa_vs_30leu$log2FoldChange >=1 | res_30aa_vs_30leu$log2FoldChange <= -1),]
+#------------------------
+subset_fc2_13aa_vs_13eth <- res_13aa_vs_13eth[(res_13aa_vs_13eth$padj <= 0.05 & !is.na(res_13aa_vs_13eth$padj)) & (res_13aa_vs_13eth$log2FoldChange >=1 | res_13aa_vs_13eth$log2FoldChange <= -1),]
+
+subset_fc2_22aa_vs_22eth <- res_22aa_vs_22eth[(res_22aa_vs_22eth$padj <= 0.05 & !is.na(res_22aa_vs_22eth$padj)) & (res_22aa_vs_22eth$log2FoldChange >=1 | res_22aa_vs_22eth$log2FoldChange <= -1),]
+
+subset_fc2_30aa_vs_30eth <- res_30aa_vs_30eth[(res_30aa_vs_30eth$padj <= 0.05 & !is.na(res_30aa_vs_30eth$padj)) & (res_30aa_vs_30eth$log2FoldChange >=1 | res_30aa_vs_30eth$log2FoldChange <= -1),]
+#------------------------
+subset_fc2_13aa_vs_13wort <- res_13aa_vs_13wort[(res_13aa_vs_13wort$padj <= 0.05 & !is.na(res_13aa_vs_13wort$padj)) & (res_13aa_vs_13wort$log2FoldChange >=1 | res_13aa_vs_13wort$log2FoldChange <= -1),]
+
+subset_fc2_22aa_vs_22wort <- res_22aa_vs_22wort[(res_22aa_vs_22wort$padj <= 0.05 & !is.na(res_22aa_vs_22wort$padj)) & (res_22aa_vs_22wort$log2FoldChange >=1 | res_22aa_vs_22wort$log2FoldChange <= -1),]
+
+subset_fc2_30aa_vs_30wort <- res_30aa_vs_30wort[(res_30aa_vs_30wort$padj <= 0.05 & !is.na(res_30aa_vs_30wort$padj)) & (res_30aa_vs_30wort$log2FoldChange >=1 | res_30aa_vs_30wort$log2FoldChange <= -1),]
+```
+
+
+```{r}
+write.csv(subset_fc2_13aa_vs_13leu, file = "subset_fc2_13aa_vs_13leu.csv")
+write.csv(subset_fc2_22aa_vs_22leu, file = "subset_fc2_22aa_vs_22leu.csv")
+write.csv(subset_fc2_30aa_vs_30leu, file = "subset_fc2_30aa_vs_30leu.csv")
+
+write.csv(subset_fc2_13aa_vs_13eth, file = "subset_fc2_13aa_vs_13eth.csv")
+write.csv(subset_fc2_22aa_vs_22eth, file = "subset_fc2_22aa_vs_22eth.csv")
+write.csv(subset_fc2_30aa_vs_30eth, file = "subset_fc2_30aa_vs_30eth.csv")
+
+write.csv(subset_fc2_13aa_vs_13wort, file = "subset_fc2_13aa_vs_13wort.csv")
+write.csv(subset_fc2_22aa_vs_22wort, file = "subset_fc2_22aa_vs_22wort.csv")
+write.csv(subset_fc2_30aa_vs_30wort, file = "subset_fc2_30aa_vs_30wort.csv")
+```
+
+
+##### ANALYSE NUMBER OF DEG FOR EACH CONDITIONS
+
+summary
+
+```{r}
+#summary(subset_fc2_13aa_vs_13leu)
+up_13leu <- sum(subset_fc2_13aa_vs_13leu$log2FoldChange > 0)
+down_13leu <- sum(subset_fc2_13aa_vs_13leu$log2FoldChange < 0)
+total_13leu <- sum(subset_fc2_13aa_vs_13leu$log2FoldChange > 0) + sum(subset_fc2_13aa_vs_13leu$log2FoldChange < 0)
+
+up_22leu <- sum(subset_fc2_22aa_vs_22leu$log2FoldChange > 0)
+down_22leu <- sum(subset_fc2_22aa_vs_22leu$log2FoldChange < 0)
+total_22leu <- sum(subset_fc2_22aa_vs_22leu$log2FoldChange > 0) + sum(subset_fc2_22aa_vs_22leu$log2FoldChange < 0)
+
+up_30leu <- sum(subset_fc2_30aa_vs_30leu$log2FoldChange > 0)
+down_30leu <- sum(subset_fc2_30aa_vs_30leu$log2FoldChange < 0)
+total_30leu <- sum(subset_fc2_30aa_vs_30leu$log2FoldChange > 0) + sum(subset_fc2_30aa_vs_30leu$log2FoldChange < 0)
+#----------
+up_13eth <- sum(subset_fc2_13aa_vs_13eth$log2FoldChange > 0)
+down_13eth <- sum(subset_fc2_13aa_vs_13eth$log2FoldChange < 0)
+total_13eth <- sum(subset_fc2_13aa_vs_13eth$log2FoldChange > 0) + sum(subset_fc2_13aa_vs_13eth$log2FoldChange < 0)
+
+up_22eth <- sum(subset_fc2_22aa_vs_22eth$log2FoldChange > 0)
+down_22eth <- sum(subset_fc2_22aa_vs_22eth$log2FoldChange < 0)
+total_22eth <- sum(subset_fc2_22aa_vs_22eth$log2FoldChange > 0) + sum(subset_fc2_22aa_vs_22eth$log2FoldChange < 0)
+
+up_30eth <- sum(subset_fc2_30aa_vs_30eth$log2FoldChange > 0)
+down_30eth <- sum(subset_fc2_30aa_vs_30eth$log2FoldChange < 0)
+total_30eth <- sum(subset_fc2_30aa_vs_30eth$log2FoldChange > 0) + sum(subset_fc2_30aa_vs_30eth$log2FoldChange < 0)
+#----------
+up_13wort <- sum(subset_fc2_13aa_vs_13wort$log2FoldChange > 0)
+down_13wort <- sum(subset_fc2_13aa_vs_13wort$log2FoldChange < 0)
+total_13wort <- sum(subset_fc2_13aa_vs_13wort$log2FoldChange > 0) + sum(subset_fc2_13aa_vs_13wort$log2FoldChange < 0)
+
+up_22wort <- sum(subset_fc2_22aa_vs_22wort$log2FoldChange > 0)
+down_22wort <- sum(subset_fc2_22aa_vs_22wort$log2FoldChange < 0)
+total_22wort <- sum(subset_fc2_22aa_vs_22wort$log2FoldChange > 0) + sum(subset_fc2_22aa_vs_22wort$log2FoldChange < 0)
+
+up_30wort <- sum(subset_fc2_30aa_vs_30wort$log2FoldChange > 0)
+down_30wort <- sum(subset_fc2_30aa_vs_30wort$log2FoldChange < 0)
+total_30wort <- sum(subset_fc2_30aa_vs_30wort$log2FoldChange > 0) + sum(subset_fc2_30aa_vs_30wort$log2FoldChange < 0)
+```
+
+#table
+
+```{r}
+Condition <- c("13aa_vs_13leu", "22aa_vs_22leu", "30aa_vs_30leu","13aa_vs_13eth", "22aa_vs_22eth", "30aa_vs_30eth","13aa_vs_13wort", "22aa_vs_22wort", "30aa_vs_30wort")
+Upregulated <- c(up_13leu,up_22leu, up_30leu, up_13eth, up_22eth, up_30eth, up_13wort, up_22wort, up_30wort)
+Downregulated <- c(down_13leu,down_22leu, down_30leu, down_13eth, down_22eth, down_30eth, down_13wort, down_22wort, down_30wort)
+Total <- c(total_13leu, total_22leu, total_30leu, total_13eth, total_22eth, total_30eth, total_13wort, total_22wort, total_30wort)
+
+
+
+df <- data.frame(Condition, Upregulated, Downregulated, Total)
+df
+
+write.csv(df, file = "DEG_countsTable.csv")
+
+```
+#table analysis!!!!
+```{r}
+df%>%
+  filter(Condition == "13aa_vs_13leu" | Condition == "13aa_vs_13eth" | Condition == "13aa_vs_13wort")
+  
+df%>%
+  filter(Condition == "22aa_vs_22leu" | Condition == "22aa_vs_22eth" | Condition == "22aa_vs_22wort")
+
+df%>%
+  filter(Condition == "30aa_vs_30leu" | Condition == "30aa_vs_30eth" | Condition == "30aa_vs_30wort")
+```
+```{r}
+leu_DEGcounts_df <- df %>%
+  filter(Condition == "13aa_vs_13leu" | Condition == "22aa_vs_22leu" | Condition == "30aa_vs_30leu")
+write.csv(leu_DEGcounts_df, file = "leu_DEGcounts.csv")
+
+eth_DEGcounts_df <- df%>%
+  filter(Condition == "13aa_vs_13eth" | Condition == "22aa_vs_22eth" | Condition == "30aa_vs_30eth")
+write.csv(eth_DEGcounts_df, file = "eth_DEGcounts.csv")
+
+wort_DEGcounts_df <- df%>%
+  filter(Condition == "13aa_vs_13wort" | Condition == "22aa_vs_22wort" | Condition == "30aa_vs_30wort")
+write.csv(wort_DEGcounts_df, file = "wort_DEGcounts.csv")
+
+  
+```
+#stat analysis:
+```{r}
+namesubset_fc2_13aa_vs_13leu <- rownames(subset_fc2_13aa_vs_13leu)
+namesubset_fc2_22aa_vs_22leu <- rownames(subset_fc2_22aa_vs_22leu)
+namesubset_fc2_30aa_vs_30leu <- rownames(subset_fc2_30aa_vs_30leu)
+venn_input_leu <- list(namesubset_fc2_13aa_vs_13leu, namesubset_fc2_22aa_vs_22leu, namesubset_fc2_30aa_vs_30leu)
+#---------
+namesubset_fc2_13aa_vs_13eth <- rownames(subset_fc2_13aa_vs_13eth)
+namesubset_fc2_22aa_vs_22eth <- rownames(subset_fc2_22aa_vs_22eth)
+namesubset_fc2_30aa_vs_30eth <- rownames(subset_fc2_30aa_vs_30eth)
+venn_input_eth <- list(namesubset_fc2_13aa_vs_13eth, namesubset_fc2_22aa_vs_22eth, namesubset_fc2_30aa_vs_30eth)
+#---------
+namesubset_fc2_13aa_vs_13wort <- rownames(subset_fc2_13aa_vs_13wort)
+namesubset_fc2_22aa_vs_22wort <- rownames(subset_fc2_22aa_vs_22wort)
+namesubset_fc2_30aa_vs_30wort <- rownames(subset_fc2_30aa_vs_30wort)
+venn_input_wort <- list(namesubset_fc2_13aa_vs_13wort, namesubset_fc2_22aa_vs_22wort, namesubset_fc2_30aa_vs_30wort)
+```
+
+## VENN diagram/s
+```{r}
+png(file = "leu_venn.png", width = 500, height = 500)
+v.table_leu <- venn(venn_input_leu)
+dev.off()
+v.table_leu
+```
+```{r}
+png(file = "eth_venn.png", width = 500, height = 500)
+v.table_eth <- venn(venn_input_eth)
+dev.off()
+v.table_eth
+```
+```{r}
+png(file = "wort_venn.png", width = 500, height = 500)
+v.table_wort <- venn(venn_input_wort)
+dev.off()
+v.table_wort
+```
+### Venn Diagram Overlap:
+```{r}
+leu_intersect <- attr(v.table_leu,"intersections")
+l13 <- unique(c(leu_intersect$A))
+l22 <- unique(c(leu_intersect$B))
+l30 <- unique(c(leu_intersect$C))
+l13_22 <- unique(c(leu_intersect$"A:B"))
+l22_30 <- unique(c(leu_intersect$"B:C"))
+l13_30 <- unique(c(leu_intersect$"A:C"))
+l13_22_30 <- unique(c(leu_intersect$"A:B:C"))
+#---------
+eth_intersect <- attr(v.table_eth,"intersections")
+e13 <- unique(c(eth_intersect$A))
+e22 <- unique(c(eth_intersect$B))
+e30 <- unique(c(eth_intersect$C))
+e13_22 <- unique(c(eth_intersect$"A:B"))
+e22_30 <- unique(c(eth_intersect$"B:C"))
+e13_30 <- unique(c(eth_intersect$"A:C"))
+e13_22_30 <- unique(c(eth_intersect$"A:B:C"))
+#---------
+wort_intersect <- attr(v.table_wort,"intersections")
+w13 <- unique(c(wort_intersect$A))
+w22 <- unique(c(wort_intersect$B))
+w30 <- unique(c(wort_intersect$C))
+w13_22 <- unique(c(wort_intersect$"A:B"))
+w22_30 <- unique(c(wort_intersect$"B:C"))
+w13_30 <- unique(c(wort_intersect$"A:C"))
+w13_22_30 <- unique(c(wort_intersect$"A:B:C"))
+```
+
+```{r}
+write.csv(l13, "intersect_13aa_13leu.csv")
+write.csv(l22, "intersect_22aa_22leu.csv")
+write.csv(l30, "intersect_30aa_30leu.csv")
+write.csv(l13_22, "intersect_13aa_13leu_vs_22aa_22leu.csv")
+write.csv(l22_30, "intersect_22aa_22leu_vs_30aa_30leu.csv")
+write.csv(l13_30, "intersect_13aa_13leu_vs_30aa_30leu.csv")
+write.csv(l13_22_30, "intersect_13aa_13leu_vs_22aa_22leu_vs_30aa_30leu.csv")
+#--------
+write.csv(e13, "intersect_13aa_13eth.csv")
+write.csv(e22, "intersect_22aa_22eth.csv")
+write.csv(e30, "intersect_30aa_30eth.csv")
+write.csv(e13_22, "intersect_13aa_13eth_vs_22aa_22eth.csv")
+write.csv(e22_30, "intersect_22aa_22eth_vs_30aa_30eth.csv")
+write.csv(e13_30, "intersect_13aa_13eth_vs_30aa_30eth.csv")
+write.csv(e13_22_30, "intersect_13aa_13eth_vs_22aa_22eth_vs_30aa_30eth.csv")
+#--------
+write.csv(w13, "intersect_13aa_13wort.csv")
+write.csv(w22, "intersect_22aa_22wort.csv")
+write.csv(w30, "intersect_30aa_30wort.csv")
+write.csv(w13_22, "intersect_13aa_13wort_vs_22aa_22wort.csv")
+write.csv(w22_30, "intersect_22aa_22wort_vs_30aa_30wort.csv")
+write.csv(w13_30, "intersect_13aa_13wort_vs_30aa_30wort.csv")
+write.csv(w13_22_30, "intersect_13aa_13wort_vs_22aa_22wort_vs_30aa_30wort.csv")
+```
+
+
+
+```{r}
+png(file = "deg_barplot_incomplete.png", width = 700, height = 500)
+rownames(df) <- df$Condition
+df_test <- cbind(df$Upregulated,df$Downregulated)
+barplot(t(as.matrix(df_test)), beside=TRUE)
+dev.off()
+```
+
+
+
+##### CREATE VOLCANO PLOTS FOR EACH CONDITIONS
+
+
+
+```{r}
+png(file = "condition_volcanoPlots_3x3.png", width = 750, height = 700)
+par(mfrow=c(3,3))
+
+with(res_13aa_vs_13leu, plot(log2FoldChange, -log10(pvalue),pch=20, main= "Volcano plot 13 aa vs 13 leu", xlim=c(-3,3)))
+with(subset(res_13aa_vs_13leu, padj<=0.05 ), points(log2FoldChange, -log10(pvalue), pch=20, col="red"))
+with(subset(res_13aa_vs_13leu, padj<=0.05 & abs(log2FoldChange)>1), points(log2FoldChange, -log10(pvalue), pch=20, col="blue"))
+
+with(res_22aa_vs_22leu, plot(log2FoldChange, -log10(pvalue),pch=20, main= "Volcano plot 22 aa vs 22 leu", xlim=c(-3,3)))
+with(subset(res_22aa_vs_22leu, padj<=0.05 ), points(log2FoldChange, -log10(pvalue), pch=20, col="red"))
+with(subset(res_22aa_vs_22leu, padj<=0.05 & abs(log2FoldChange)>1), points(log2FoldChange, -log10(pvalue), pch=20, col="blue"))
+
+with(res_30aa_vs_30leu, plot(log2FoldChange, -log10(pvalue),pch=20, main= "Volcano plot 30 aa vs 30 leu", xlim=c(-3,3)))
+with(subset(res_30aa_vs_30leu, padj<=0.05 ), points(log2FoldChange, -log10(pvalue), pch=20, col="red"))
+with(subset(res_30aa_vs_30leu, padj<=0.05 & abs(log2FoldChange)>1), points(log2FoldChange, -log10(pvalue), pch=20, col="blue"))
+#---------------------
+with(res_13aa_vs_13eth, plot(log2FoldChange, -log10(pvalue),pch=20, main= "Volcano plot 13 aa vs 13 eth", xlim=c(-3,3)))
+with(subset(res_13aa_vs_13eth, padj<=0.05 ), points(log2FoldChange, -log10(pvalue), pch=20, col="red"))
+with(subset(res_13aa_vs_13eth, padj<=0.05 & abs(log2FoldChange)>1), points(log2FoldChange, -log10(pvalue), pch=20, col="blue"))
+
+with(res_22aa_vs_22eth, plot(log2FoldChange, -log10(pvalue),pch=20, main= "Volcano plot 22 aa vs 22 eth", xlim=c(-3,3)))
+with(subset(res_22aa_vs_22eth, padj<=0.05 ), points(log2FoldChange, -log10(pvalue), pch=20, col="red"))
+with(subset(res_22aa_vs_22eth, padj<=0.05 & abs(log2FoldChange)>1), points(log2FoldChange, -log10(pvalue), pch=20, col="blue"))
+
+with(res_30aa_vs_30eth, plot(log2FoldChange, -log10(pvalue),pch=20, main= "Volcano plot 30 aa vs 30 eth", xlim=c(-3,3)))
+with(subset(res_30aa_vs_30eth, padj<=0.05 ), points(log2FoldChange, -log10(pvalue), pch=20, col="red"))
+with(subset(res_30aa_vs_30eth, padj<=0.05 & abs(log2FoldChange)>1), points(log2FoldChange, -log10(pvalue), pch=20, col="blue"))
+#---------------------
+with(res_13aa_vs_13wort, plot(log2FoldChange, -log10(pvalue),pch=20, main= "Volcano plot 13 aa vs 13 wort", xlim=c(-3,3)))
+with(subset(res_13aa_vs_13wort, padj<=0.05 ), points(log2FoldChange, -log10(pvalue), pch=20, col="red"))
+with(subset(res_13aa_vs_13wort, padj<=0.05 & abs(log2FoldChange)>1), points(log2FoldChange, -log10(pvalue), pch=20, col="blue"))
+
+with(res_22aa_vs_22wort, plot(log2FoldChange, -log10(pvalue),pch=20, main= "Volcano plot 22 aa vs 22 wort", xlim=c(-3,3)))
+with(subset(res_22aa_vs_22wort, padj<=0.05 ), points(log2FoldChange, -log10(pvalue), pch=20, col="red"))
+with(subset(res_22aa_vs_22wort, padj<=0.05 & abs(log2FoldChange)>1), points(log2FoldChange, -log10(pvalue), pch=20, col="blue"))
+
+with(res_30aa_vs_30wort, plot(log2FoldChange, -log10(pvalue),pch=20, main= "Volcano plot 30 aa vs 30 wort", xlim=c(-3,3)))
+with(subset(res_30aa_vs_30wort, padj<=0.05 ), points(log2FoldChange, -log10(pvalue), pch=20, col="red"))
+with(subset(res_30aa_vs_30wort, padj<=0.05 & abs(log2FoldChange)>1), points(log2FoldChange, -log10(pvalue), pch=20, col="blue"))
+
+dev.off()
+```
+
+
+```{r}
+png(file = "enhancedVolcano.png", width = 700, height = 500)
+EnhancedVolcano(res_13aa_vs_13leu,
+                lab = row.names(res_13aa_vs_13leu),
+                x = "log2FoldChange",
+                y = "pvalue",
+                title = "Volcano plot 13 aa vs 13 leu",
+                xlim = c(-3, 3),
+                pCutoff = 0.05,
+                FCcutoff = 1,
+                pointSize = 1.0,
+                labSize = 3.0,
+                labCol = "black",
+                shape = c(1, 4, 23, 25),
+                legendPosition = "right",
+                legendLabSize = 8,
+                legendIconSize = 3,
+                drawConnectors = T,
+                widthConnectors = 1.0)
+dev.off()
+```
+
+
+
+
+
+##### OTHER ANALYSIS ---- IF TIME AT THE END
+
+```{r}
+par(mfrow=c(2,3))
+
+plotCounts(dds, gene="SPGP_0Q02220", intgroup="temperature")
+plotCounts(dds, gene="SPGP_0EQ00100", intgroup="temperature")
+plotCounts(dds, gene="SPGP_0EQ00110", intgroup="temperature")
+plotCounts(dds, gene="SPGP_0CZ02560", intgroup="temperature")
+plotCounts(dds, gene="SPGP_0E01000", intgroup="temperature")
+plotCounts(dds, gene="SPGP_0L01010", intgroup="temperature")
+
+par(mfrow=c(2,3))
+
+plotCounts(dds, gene="SPGP_0Q02220", intgroup="media")
+plotCounts(dds, gene="SPGP_0EQ00100", intgroup="media")
+plotCounts(dds, gene="SPGP_0EQ00110", intgroup="media")
+plotCounts(dds, gene="SPGP_0CZ02560", intgroup="media")
+plotCounts(dds, gene="SPGP_0E01000", intgroup="media")
+plotCounts(dds, gene="SPGP_0L01010", intgroup="media")
+
+par(mfrow=c(2,3))
+
+plotCounts(dds, gene="SPGP_0Q02220", intgroup="condition")
+plotCounts(dds, gene="SPGP_0EQ00100", intgroup="condition")
+plotCounts(dds, gene="SPGP_0EQ00110", intgroup="condition")
+plotCounts(dds, gene="SPGP_0CZ02560", intgroup="condition")
+plotCounts(dds, gene="SPGP_0E01000", intgroup="condition")
+plotCounts(dds, gene="SPGP_0L01010", intgroup="condition")
+```
+
+
+## DEG COUNTS FOR SP, SC, SE (POST PYTHON)
+```{r}
+eth_orth_annotatedData <- read.csv("\\\\nask.man.ac.uk\\home$\\Documents\\R_Proj\\1_Feature_counts\\unnorm_data_1\\analysis\\fc2_aa_vs_eth\\orth_annotated_intersect_13aa_13eth_vs_22aa_22eth_vs_30aa_30eth.csv", sep = "\t")
+
+leu_orth_annotatedData <- read.csv("\\\\nask.man.ac.uk\\home$\\Documents\\R_Proj\\1_Feature_counts\\unnorm_data_1\\analysis\\fc2_aa_vs_leu\\orth_annotated_intersect_13aa_13leu_vs_22aa_22leu_vs_30aa_30leu.csv", sep = "\t")
+
+wort_orth_annotatedData <- read.csv("\\\\nask.man.ac.uk\\home$\\Documents\\R_Proj\\1_Feature_counts\\unnorm_data_1\\analysis\\fc2_aa_vs_wort\\orth_annotated_intersect_13aa_13wort_vs_22aa_22wort_vs_30aa_30wort.csv", sep = "\t")
+```
+
+```{r}
+eth_SP_count <- sum(eth_orth_annotatedData$Parent == "S. pastorianus")
+eth_SC_count <- sum(eth_orth_annotatedData$Parent == "S_cerevisiae")
+eth_SE_count <- sum(eth_orth_annotatedData$Parent == "S_eubayanus")
+#-----------
+leu_SP_count <- sum(leu_orth_annotatedData$Parent == "S. pastorianus")
+leu_SC_count <- sum(leu_orth_annotatedData$Parent == "S_cerevisiae")
+leu_SE_count <- sum(leu_orth_annotatedData$Parent == "S_eubayanus")
+#-----------
+wort_SP_count <- sum(wort_orth_annotatedData$Parent == "S. pastorianus")
+wort_SC_count <- sum(wort_orth_annotatedData$Parent == "S_cerevisiae")
+wort_SE_count <- sum(wort_orth_annotatedData$Parent == "S_eubayanus")
+```
+
+```{r}
+condition_names <- c("aa vs eth", "aa vs leu", "aa vs wort")
+S_pastorianus_genes <- c(eth_SP_count, leu_SP_count, wort_SP_count)
+S_cerevisiae_genes <- c(eth_SC_count, leu_SC_count, wort_SC_count)
+S_eubayanus_genes <- c(eth_SE_count, leu_SE_count, wort_SE_count)
+Total_genes <- c(eth_SP_count + eth_SC_count + eth_SE_count, leu_SP_count + leu_SC_count + leu_SE_count, wort_SP_count + wort_SC_count + wort_SE_count)
+
+species_geneNumber <- data.frame(condition_names, S_pastorianus_genes, S_cerevisiae_genes, S_eubayanus_genes, Total_genes)
+species_geneNumber
+
+write.csv(species_geneNumber, file = "species_geneNumber.csv")
+```
+
+

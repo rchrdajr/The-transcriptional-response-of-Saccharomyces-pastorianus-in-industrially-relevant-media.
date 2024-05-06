@@ -1,0 +1,29 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1710512515427.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "690AEC7B",
+    "lastKnownWriteTime" : 32651513914720368,
+    "last_content_update" : 1710512515427,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "E0BE122D",
+        "caption" : "multiPC_data",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=multiPC_data&cache_key=E0BE122D",
+        "displayedObservations" : 36,
+        "environment" : "",
+        "object" : "multiPC_data",
+        "preview" : 0,
+        "totalObservations" : 36,
+        "variables" : 8
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1711030557212.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "7C0091AA",
+    "lastKnownWriteTime" : 6876555063094441829,
+    "last_content_update" : 1711030557212,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "id" : "4b341cb2b2f4480d855ee8095bd05c19",
+        "name" : "venn_input",
+        "title" : "venn_input"
+    },
+    "relative_order" : 10,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "object_explorer"
+}

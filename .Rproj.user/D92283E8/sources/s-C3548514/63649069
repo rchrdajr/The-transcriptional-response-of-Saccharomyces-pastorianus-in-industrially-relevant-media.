@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1712154767668.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "1827114393",
+    "id" : "63649069",
+    "lastKnownWriteTime" : 1712159305,
+    "last_content_update" : 1712159305970,
+    "path" : "//nask.man.ac.uk/home$/Documents/R_Proj/1_Feature_counts/unnorm_data_1/histograms.R",
+    "project_path" : "histograms.R",
+    "properties" : {
+        "cursorPosition" : "12,21",
+        "scrollLine" : "0",
+        "tempName" : "Untitled2"
+    },
+    "relative_order" : 11,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
